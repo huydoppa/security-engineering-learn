@@ -3,12 +3,14 @@ package extractor
 import (
 	"example.com/cc/util"
 	"fmt"
+	"github.com/panjf2000/ants"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 var founds []string
@@ -72,17 +74,51 @@ func extractTextFromFile(path string) error {
 
 func doHashWalk(dirPath string) error {
 	fullPath, err := filepath.Abs(dirPath)
-
 	if err != nil {
 		return err
 	}
 
+	pool, _ := ants.NewPool(10)
+
+	wg := sync.WaitGroup{}
 	callback := func(path string, fi os.FileInfo, err error) error {
-		return hashFile(path, fi, err)
+		if err != nil {
+			return err
+		}
+
+		wg.Add(1)
+		pool.Submit(func() {
+			defer wg.Done()
+			hashFile(path, fi, err)
+		})
+
+		return nil
 	}
 
-	return filepath.Walk(fullPath, callback)
+	err = filepath.Walk(fullPath, callback)
+	if err != nil {
+		return err
+	}
+
+	wg.Wait()
+	pool.Release()
+
+	return nil
 }
+
+//func doHashWalk(dirPath string) error {
+//	fullPath, err := filepath.Abs(dirPath)
+//
+//	if err != nil {
+//		return err
+//	}
+//
+//	callback := func(path string, fi os.FileInfo, err error) error {
+//		return hashFile(path, fi, err)
+//	}
+//
+//	return filepath.Walk(fullPath, callback)
+//}
 
 func hashFile(path string, fileInfo os.FileInfo, err error) error {
 

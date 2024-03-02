@@ -29,7 +29,7 @@ func main() {
 	}
 
 	var baseApk = *apk
-
+	//	var baseApk = "C:\\Users\\nguye\\Downloads\\hm.apk"
 	var tempDir = directory.CreateTempDir()
 	fmt.Println(tempDir)
 	apktool.RunApktool(baseApk, tempDir)
